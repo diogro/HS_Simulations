@@ -3,10 +3,14 @@ initialize() {
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeMutationType("m2", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", c(m1, m2), c(0.5, 0.5));
+	// Genome size is up for consideration
 	initializeGenomicElement(g1, 0, 100000);
+	// Simplest case: 4 equally sized cromossomes, with some pretty large recombination
 	initializeRecombinationRate(c(1e-6, 0.5, 1e-6, 0.5, 1e-6, 0.5, 1e-6), c(24999, 25000, 49999, 50000, 74999, 75000, 100000));
 }
 1 {
+	// How many founder populations? This just gets some independent polimorfisms for the selective part, probably not the best approach.
+	// #n_founders (20) small (Ne = 100) populations acumulate some mutations. 
 	defineConstant("n_founders", 20);
    for (i in 1:n_founders)
 		sim.addSubpop(i, 100);
@@ -15,7 +19,7 @@ initialize() {
 9999 early() {
 	// inbreed founders
 	for (i in 0:(n_founders-1))
-	  sim.subpopulations[0:1].setSubpopulationSize(1);
+	  sim.subpopulations[i].setSubpopulationSize(1);
 }
 //999 late() { sim.outputFull(); }
 10000 early() {
