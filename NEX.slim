@@ -5,13 +5,13 @@ initialize() {
 	initializeGenomicElementType("g1", c(m1, m2), c(0.5, 0.5));
 	// Genome size is up for consideration
 	initializeGenomicElement(g1, 0, 100000);
-	// Simplest case: 4 equally sized cromossomes, with some pretty large recombination
+	// Simplest case: 4 equally sized cromossomes, with some pretty high recombination
 	initializeRecombinationRate(c(1e-6, 0.5, 1e-6, 0.5, 1e-6, 0.5, 1e-6), c(24999, 25000, 49999, 50000, 74999, 75000, 100000));
 }
 1 {
 	// How many founder populations? This just gets some independent polimorfisms for the selective part, probably not the best approach.
 	// #n_founders (20) small (Ne = 100) populations acumulate some mutations. 
-	defineConstant("n_founders", 20);
+	defineConstant("n_founders", 4);
    for (i in 1:n_founders)
 		sim.addSubpop(i, 100);
 	founders = sim.subpopulations;
@@ -24,7 +24,7 @@ initialize() {
 //999 late() { sim.outputFull(); }
 10000 early() {
 	// set up pN to generate itself entirely from migrants
-	sim.addSubpop(n_founders+1, 50000);
+	sim.addSubpop(n_founders+1, 5000);
 	rates = rep(1, n_founders);
 	rates = rates/sum(rates);
 	rates[0] = rates[0] + (1 - sum(rates));
@@ -47,4 +47,4 @@ initialize() {
 	}
 	
 }
-10200 late() { sim.outputFixedMutations(); }
+10200 late() { sim.subpopulations[0].outputVCFSample(200, filePath="~/projects/HS_simulations/outputs/HS.vcf"); }
