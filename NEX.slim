@@ -28,32 +28,32 @@ initialize() {
 	for (i in 0:(n_founders-1))
 		sim.subpopulations[i].setSubpopulationSize(1);
 }
-//999 late() { sim.outputFull(); }
-10050 early() {
-	// set up pN to generate itself entirely from migrants
-	sim.addSubpop(n_founders+1, 50000);
-	rates = rep(1, n_founders);
-	rates = rates/sum(rates);
-	rates[0] = rates[0] + (1 - sum(rates));
-	sim.subpopulations[n_founders].setMigrationRates(sim.subpopulations[0:(n_founders-1)], rates);
-}
-10050 late() {
-	// remove the source subpopulations
-	sim.subpopulations[n_founders].setMigrationRates(sim.subpopulations[0:(n_founders-1)], rep(0, n_founders));
-	for (i in 0:(n_founders-1))
-		sim.subpopulations[0].setSubpopulationSize(0);
-}
-10099 late() {
-	// Introduce selection	
-	mut = sim.mutationsOfType(m1);
-	n_mut = length(mut);
-	n_s = asInteger(n_mut);
-	s = rbeta(n_s, 1, 20);
-	for(i in 0:(n_s-1)){
-		mut[i].setSelectionCoeff(s[i]);
-	}
-
-}
-10200 late() { 
-	sim.subpopulations[0].outputVCFSample(200, filePath="~/projects/HS_simulations/outputs/HS.vcf"); 
-	}
+10049 late() { sim.outputFull(filePath="/home/diogro/projects/HS_simulations/outputs/burnin.pop"); }
+//10050 early() {
+//	// set up pN to generate itself entirely from migrants
+//	sim.addSubpop(n_founders+1, 50000);
+//	rates = rep(1, n_founders);
+//	rates = rates/sum(rates);
+//	rates[0] = rates[0] + (1 - sum(rates));
+//	sim.subpopulations[n_founders].setMigrationRates(sim.subpopulations[0:(n_founders-1)], rates);
+//}
+//10050 late() {
+//	// remove the source subpopulations
+//	sim.subpopulations[n_founders].setMigrationRates(sim.subpopulations[0:(n_founders-1)], rep(0, n_founders));
+//	for (i in 0:(n_founders-1))
+//		sim.subpopulations[0].setSubpopulationSize(0);
+//}
+////10099 late() {
+////	// Introduce selection	
+////	mut = sim.mutationsOfType(m1);
+////	n_mut = length(mut);
+////	n_s = asInteger(n_mut);
+////	s = rbeta(n_s, 1, 20);
+////	for(i in 0:(n_s-1)){
+////		mut[i].setSelectionCoeff(s[i]);
+////	}
+////
+////}
+////10200 late() { 
+////	sim.subpopulations[0].outputVCFSample(200, filePath="~/projects/HS_simulations/outputs/HS.vcf"); 
+////	}
