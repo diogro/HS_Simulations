@@ -41,3 +41,5 @@ vignettes/*.pdf
 # Outputs
 outputs/
 outputs/*
+HS_simulations.Rproj
+*.mp4

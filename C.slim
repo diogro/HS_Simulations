@@ -31,42 +31,42 @@ initialize() {
 }
 10099 late() {
 	// Introduce selection	
-	mut = sim.mutationsOfType(m1);
-	n_mut = length(mut);
-	n_s = asInteger(n_mut/20);
-	s = rbeta(n_s, 1, 40);
-	for(i in 0:(n_s-1)){
-		mut[i].setSelectionCoeff(s[i]);
-	}
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_001.vcf");
+//	mut = sim.mutationsOfType(m1);
+//	n_mut = length(mut);
+//	n_s = asInteger(n_mut/20);
+//	s = rbeta(n_s, 1, 40);
+//	for(i in 0:(n_s-1)){
+//		mut[i].setSelectionCoeff(s[i]);
+//	}
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_001.vcf");
 }
 10110 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_010.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_010.vcf");
 }
 10120 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_020.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_020.vcf");
 }
 10130 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_030.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_030.vcf");
 }
 10140 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_040.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_040.vcf");
 }
 10150 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_050.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_050.vcf");
 }
 10160 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_060.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_060.vcf");
 }
 10170 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_070.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_070.vcf");
 }
 10180 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_080.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_080.vcf");
 }
 10190 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_090.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_090.vcf");
 }
 10200 late() {
-	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/HS_100.vcf");
+	sim.subpopulations[0].outputVCFSample(1000, filePath="~/projects/HS_simulations/outputs/C_100.vcf");
 }
