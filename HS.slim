@@ -6,7 +6,7 @@ initialize() {
 	// Genome size is up for consideration
 	initializeGenomicElement(g1, 0, 100000);
 	// Simplest case: 4 equally sized cromossomes, with some pretty high recombination
-	initializeRecombinationRate(c(1e-6, 0.5, 1e-6, 0.5, 1e-6, 0.5, 1e-6), c(24999, 25000, 49999, 50000, 74999, 75000, 100000));
+	initializeRecombinationRate(c(5e-6, 0.5, 5e-6, 0.5, 5e-6, 0.5, 5e-6), c(24999, 25000, 49999, 50000, 74999, 75000, 100000));
 }
 
 // create a population of 500 individuals
@@ -33,7 +33,7 @@ initialize() {
 	// Introduce selection	
 	mut = sim.mutationsOfType(m1);
 	n_mut = length(mut);
-	n_s = asInteger(n_mut/20);
+	n_s = asInteger(n_mut);
 	s = rbeta(n_s, 1, 40);
 	for(i in 0:(n_s-1)){
 		mut[i].setSelectionCoeff(s[i]);
