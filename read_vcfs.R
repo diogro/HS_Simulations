@@ -6,26 +6,45 @@ if(!require(superheat)){install.packages("superheat"); library(superheat)}
 if(!require(animation)){install.packages("animation"); library(animation)}
 if(!require(ggrepel)){install.packages("ggrepel"); library(ggrepel)}
 if(!require(cowplot)){install.packages("cowplot"); library(cowplot)}
+if(!require(evolqg)){install.packages("evolqg"); library(evolqg)}
+if(!require(yamdar)){remotes::install_github("diogro/yamda-r", subdir = "package")
+; library(yamdar)}
 
 lt = function(x) x[lower.tri(x)]
+x = vcfs_C[[1]]
+last = function(x) x[[length(x)]]
 LDplot = function(x, main = NULL){
+  print(1)
   n_snp = dim(x)[2]
   LDmap = LD(x, lim = c(1, n_snp))
   trim_snps = floor(seq(1, n_snp, length.out = 600))
   LDmap = LDmap[trim_snps, trim_snps]
   chr = floor(4*(x@snps$pos/100000)) + 1
   chr = chr[trim_snps]
+  if(!any(is.na(LDmap))){
+    hypot = toHypotMatrix(chr)
+    meanLD = TestModularity(LDmap, hypot, permutations = 1)[5,4:5]  
+  }
+  else {
+    exclude = which(apply(LDmap, 1, function(x) sum(is.na(x)) > 2))
+    chr = chr[-exclude]
+    LDmap = LDmap[-exclude, -exclude]
+    hypot = toHypotMatrix(chr)
+    meanLD = TestModularity(LDmap, hypot, permutations = 1)[5,4:5]   
+  }
   p = superheat(LDmap, heat.lim = c(0, 1), title = main, 
                 membership.rows = chr, membership.cols = chr, 
                 left.label = "none",
                 bottom.label = "none", legend = FALSE)
-  return(list(p, LDmap))
+  return(list(LDmap, chr, meanLD))
 }
 
-vcfs_files_HS = dir("outputs/", pattern = "HS_\\d{3}.vcf",full.names = T)
+vcfs_files_HS = dir("outputs/", pattern = "HS_\\d{3}_\\d{1}.vcf",full.names = T)
 vcfs_HS = lapply(vcfs_files_HS, read.vcf)
 vcfs_HS = lapply(vcfs_HS, select.snps, maf > 0.05)
-names(vcfs_HS) = paste0("HS", str_pad(c(1, seq(10, 100, 10)), 3, "0", side = "left"))
+names(vcfs_HS) = paste(rep(paste0("HS", str_pad(c(1, seq(10, 100, 10)), 3, "0", 
+                                                side = "left")), each = 3),
+                       1:3, sep = "_")
 all_pos = lapply(vcfs_HS, function(x) x@snps$pos)
 possible_pos = unique(unlist(all_pos))
 for(i in 1:length(possible_pos)){
@@ -38,19 +57,21 @@ possible_pos = na.omit(possible_pos)
 vcfs_HS = lapply(vcfs_HS, select.snps, pos %in% possible_pos) %>%
   lapply(., SNP.rm.duplicates)
 pdf(file = "HS.pdf")
-lapply(vcfs_HS, LDplot, "HS")
+vcfs_HS_LD = lapply(vcfs_HS, LDplot, "HS")
 dev.off()
 
 png("plots/HS_gen001.png", height = 1080, width = 1080)
 LDplot(vcfs_HS[[1]])
 dev.off()
 png("plots/HS_gen100.png")
-LDplot(vcfs_HS[[11]])
+LDplot(last(vcfs_HS))
 dev.off()
 
-vcfs_files_C = dir("outputs/", pattern = "C_\\d{3}.vcf",full.names = T)
+vcfs_files_C = dir("outputs/", pattern = "C_\\d{3}_\\d{1}.vcf",full.names = T)
 vcfs_C = lapply(vcfs_files_C, read.vcf)
-names(vcfs_C) = paste0("C", str_pad(c(1, seq(10, 100, 10)), 3, "0", side = "left"))
+names(vcfs_C) = paste(rep(paste0("C", str_pad(c(1, seq(10, 100, 10)), 3, "0", 
+                                               side = "left")), each = 3),
+                      1:3, sep = "_")
 vcfs_C = lapply(vcfs_C, select.snps, maf > 0.05)
 all_pos = lapply(vcfs_C, function(x) x@snps$pos)
 possible_pos = unique(unlist(all_pos))
@@ -64,7 +85,7 @@ possible_pos = na.omit(possible_pos)
 vcfs_C = lapply(vcfs_C, select.snps, pos %in% possible_pos) %>%
   lapply(., SNP.rm.duplicates)
 pdf(file = "control.pdf")
-lapply(vcfs_C, LDplot, "Control")
+vcfs_C_LD = lapply(vcfs_C, LDplot, "Control")
 dev.off()
 png("plots/C_gen001.png")
 LDplot(vcfs_C[[1]])
@@ -96,8 +117,10 @@ x$pos = NULL
 x = t(x)
 eigen_Freq = eigen(cov(x))
 loadings = (x %*% eigen_Freq$vectors)[,1:2]
-plot(loadings)
-a_freq_pca = data.frame(loadings, generation = rownames(loadings), type = rep(c("control", "selection"), each = 11)) %>%
-  ggplot(aes(X1, X2, color = type)) + geom_point() + geom_label_repel(aes(label = generation)) +
+
+a_freq_pca = data.frame(loadings, generation = rownames(loadings), 
+                        type = rep(c("control", "selection"), each = 33)) %>%
+  ggplot(aes(X1, X2, color = type)) + geom_point() + 
+  geom_label_repel(aes(label = generation)) +
   labs(x = "PC1", y = "PC2") + theme_bw() + ggtitle("Allele Frequency PCA")
 save_plot("plots/allele_frequency_PCA.png", a_freq_pca, base_height = 6, base_asp = 1.4)
