@@ -1,0 +1,95 @@
+initialize() {
+	if (!exists("seed"))
+		defineConstant("seed", 1);
+	if (!exists("out_folder"))
+		defineConstant("out_folder", "~/projects/HS_simulations/HS_simulation_data/outputs/");
+	if (!exists("n_founders"))
+		defineConstant("n_founders", 20);
+	if (!exists("n_pop"))
+		defineConstant("n_pop", 1000);
+	if (!exists("n_sample"))
+		defineConstant("n_sample", 100);
+	if (!exists("selVar"))
+		defineConstant("selVar", 0.01);
+	if (!exists("control"))
+		defineConstant("control", F);
+	
+	setSeed(seed);
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", c(m1, m2), c(0.5, 0.5));
+	// Genome size is up for consideration
+	initializeGenomicElement(g1, 0, 100000);
+	// Simplest case: 4 equally sized cromossomes, with some pretty high recombination
+	initializeRecombinationRate(c(5e-6, 0.5, 5e-6, 0.5, 5e-6, 0.5, 5e-6), c(24999, 25000, 49999, 50000, 74999, 75000, 100000));
+}
+
+// create a population of 500 individuals
+1 late() {
+	sim.readFromPopulationFile(filePath="/home/diogro/projects/HS_simulations/HS_simulation_data/outputs/burnin.pop");
+}
+
+10050 early() {
+	// set up pN to generate itself entirely from migrants
+	sim.addSubpop(n_founders+1, n_pop);
+	rates = rep(1, n_founders);
+	rates = rates/sum(rates);
+	rates[0] = rates[0] + (1 - sum(rates));
+	sim.subpopulations[n_founders].setMigrationRates(sim.subpopulations[0:(n_founders-1)], rates);
+}
+10050 late() {
+	// remove the source subpopulations
+	sim.subpopulations[n_founders].setMigrationRates(sim.subpopulations[0:(n_founders-1)], rep(0, n_founders));
+	for (i in 0:(n_founders-1))
+		sim.subpopulations[0].setSubpopulationSize(0);
+}
+10099 early() {
+	// set up replicates
+	sim.addSubpop(n_founders+2, n_pop);
+	sim.addSubpop(n_founders+3, n_pop);
+	sim.subpopulations[1].setMigrationRates(sim.subpopulations[0], 1);
+	sim.subpopulations[2].setMigrationRates(sim.subpopulations[0], 1);
+}
+10099 late() {
+	// Introduce selection	
+	mut1 = sim.mutationsOfType(m1);
+	n_mut1 = length(mut1);
+	n_s1 = asInteger(n_mut1/5);
+	//s_1 = rbeta(n_s1, 1, 40);
+	s_1 = rnorm(n_s1, 0, selVar);
+	catn("Position S_coef Type");
+	for(i in 0:(n_s1-1)){
+		mut1[i].setSelectionCoeff(s_1[i]);
+		catn(mut1[i].position + " " + mut1[i].selectionCoeff + " " + "C");
+	}
+	mut2 = sim.mutationsOfType(m2);
+	n_mut2 = length(mut2);
+	n_s2 = asInteger(n_mut2/5);
+	//s_2 = rbeta(n_s2, 1, 40);
+	s_2 = rnorm(n_s2, 0, selVar);
+	for(i in 0:(n_s2-1)){
+		if(!control){
+			mut2[i].setSelectionCoeff(s_2[i]);
+			catn(mut1[i].position + " " + mut1[i].selectionCoeff + " " + "HS");
+		}
+	}
+	pop_name = ifelse(control, "ssC", "ssHS");
+	sim.subpopulations[0].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_001_1.vcf"));
+	sim.subpopulations[1].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_001_2.vcf"));
+	sim.subpopulations[2].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_001_3.vcf"));
+}
+10110 early() {
+	sim.subpopulations[1].setMigrationRates(sim.subpopulations[0], 0);
+	sim.subpopulations[2].setMigrationRates(sim.subpopulations[0], 0);
+}
+
+10110:10200 late() {
+	if(sim.generation % 10 == 0){
+		gen = sim.generation-10100;
+		pop_name = ifelse(control, "ssC", "ssHS");
+		sim.subpopulations[0].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_", format("%.3d", gen), "_1.vcf"));
+		sim.subpopulations[1].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_", format("%.3d", gen), "_2.vcf"));
+		sim.subpopulations[2].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_", format("%.3d", gen), "_3.vcf"));
+	}
+}
