@@ -1,8 +1,11 @@
 initialize() {
 	if (!exists("seed"))
 		defineConstant("seed", 1);
-	if (!exists("out_folder"))
-		defineConstant("out_folder", "~/projects/HS_simulations/HS_simulation_data/outputs/");
+		
+	if (!exists("out"))
+		defineConstant("out", "");
+	defineConstant("out_folder", paste0("~/projects/HS_simulations/HS_simulation_data/outputs/", out, "/"));
+
 	if (!exists("n_founders"))
 		defineConstant("n_founders", 20);
 	if (!exists("n_pop"))
@@ -62,7 +65,7 @@ initialize() {
 	n_s1 = asInteger(n_mut1 * selected_fraction);
 	//s_1 = rbeta(n_s1, 1, 40);
 	s_1 = rnorm(n_s1, 0, sel_var);
-	catn("Position S_coef Type");
+	catn("pos s_coef type");
 	if(shared_selection){
 		for(i in 0:(n_s1-1)){
 			mut1[i].setSelectionCoeff(s_1[i]);
