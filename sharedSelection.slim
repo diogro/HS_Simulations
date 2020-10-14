@@ -1,11 +1,11 @@
 initialize() {
 	if (!exists("seed"))
 		defineConstant("seed", 1);
-		
+	
 	if (!exists("out"))
 		defineConstant("out", "");
 	defineConstant("out_folder", paste0("~/projects/HS_simulations/HS_simulation_data/outputs/", out, "/"));
-
+	
 	if (!exists("n_founders"))
 		defineConstant("n_founders", 20);
 	if (!exists("n_pop"))
@@ -65,11 +65,9 @@ initialize() {
 	n_s1 = asInteger(n_mut1 * selected_fraction);
 	//s_1 = rbeta(n_s1, 1, 40);
 	s_1 = rnorm(n_s1, 0, sel_var);
-	catn("pos s_coef type");
 	if(shared_selection){
 		for(i in 0:(n_s1-1)){
 			mut1[i].setSelectionCoeff(s_1[i]);
-			catn(mut1[i].position + " " + mut1[i].selectionCoeff + " " + "C");
 		}
 	}
 	mut2 = sim.mutationsOfType(m2);
@@ -77,26 +75,32 @@ initialize() {
 	n_s2 = asInteger(n_mut2 * selected_fraction);
 	//s_2 = rbeta(n_s2, 1, 40);
 	s_2 = rnorm(n_s2, 0, sel_var);
-	if(!control){	
+	if(!control){
 		for(i in 0:(n_s2-1)){
 			mut2[i].setSelectionCoeff(s_2[i]);
-			catn(mut1[i].position + " " + mut1[i].selectionCoeff + " " + "HS");
 		}
 	}
+
+}
+10100 early() {
+	sim.subpopulations[1].setMigrationRates(sim.subpopulations[0], 0);
+	sim.subpopulations[2].setMigrationRates(sim.subpopulations[0], 0);
+}
+10100 late() {
 	pop_name = ifelse(control, "ssC", "ssHS");
+	sim.outputMutations(sim.mutationsOfType(m1), filePath=paste0(out_folder, pop_name, ".mut"));
+	sim.outputMutations(sim.mutationsOfType(m2), filePath=paste0(out_folder, pop_name, ".mut"), append=T);
 	sim.subpopulations[0].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_001_1.vcf"));
 	sim.subpopulations[1].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_001_2.vcf"));
 	sim.subpopulations[2].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_001_3.vcf"));
-}
-10110 early() {
-	sim.subpopulations[1].setMigrationRates(sim.subpopulations[0], 0);
-	sim.subpopulations[2].setMigrationRates(sim.subpopulations[0], 0);
 }
 
 10110:10200 late() {
 	if(sim.generation % 10 == 0){
 		gen = sim.generation-10100;
 		pop_name = ifelse(control, "ssC", "ssHS");
+		sim.outputMutations(sim.mutationsOfType(m1), filePath=paste0(out_folder, pop_name, ".mut"), append=T);
+		sim.outputMutations(sim.mutationsOfType(m2), filePath=paste0(out_folder, pop_name, ".mut"), append=T);
 		sim.subpopulations[0].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_", format("%.3d", gen), "_1.vcf"));
 		sim.subpopulations[1].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_", format("%.3d", gen), "_2.vcf"));
 		sim.subpopulations[2].outputVCFSample(n_sample, filePath=paste0(out_folder, pop_name, "_", format("%.3d", gen), "_3.vcf"));

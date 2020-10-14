@@ -17,7 +17,10 @@ LDplot = function(x, main = NULL){
   print(1)
   n_snp = dim(x)[2]
   LDmap = LD(x, lim = c(1, n_snp))
-  trim_snps = floor(seq(1, n_snp, length.out = 600))
+  if(n_snp > 600)
+    trim_snps = floor(seq(1, n_snp, length.out = 600))
+  else
+    trim_snps = 1:n_snp
   LDmap = LDmap[trim_snps, trim_snps]
   chr = floor(4*(x@snps$pos/100000)) + 1
   names(chr) = x@snps$pos
@@ -39,11 +42,11 @@ LDplot = function(x, main = NULL){
                 bottom.label = "none", legend = FALSE)
   return(list(LD = LDmap, chr = chr, meanLD = meanLD))
 }
-read_SimVCFs = function(pattern){
-  vcfs_files = dir("HS_simulation_data/outputs/", pattern = pattern, full.names = T)
+read_SimVCFs = function(folder, pattern, type){
+  vcfs_files = dir(folder, pattern = pattern, full.names = T)
   vcfs = lapply(vcfs_files, read.vcf)
   vcfs = lapply(vcfs, select.snps, maf > 0.05)
-  names(vcfs) = paste(rep(paste0("HS", str_pad(c(1, seq(10, 100, 10)), 3, "0", 
+  names(vcfs) = paste(rep(paste0(type, str_pad(c(1, seq(10, 100, 10)), 3, "0", 
                                                   side = "left")), each = 3),
                          1:3, sep = "_")
   all_pos = lapply(vcfs, function(x) x@snps$pos)
@@ -60,8 +63,11 @@ read_SimVCFs = function(pattern){
   vcfs
 }
 
-vcfs_HS = read_SimVCFs("ssHS_\\d{3}_\\d{1}.vcf")
-vcfs_C = read_SimVCFs("ssC_\\d{3}_\\d{1}.vcf")
+vcfs_HS = read_SimVCFs(
+  folder = "./HS_simulation_data/outputs/test/sSD-0.1_shared-T_nsample-100_npop-1000_nfounders-20_seed-1/", 
+  pattern = "ssHS_\\d{3}_\\d{1}.vcf", "HS")
+vcfs_C = read_SimVCFs( folder = "./HS_simulation_data/outputs/test/sSD-0.1_shared-T_nsample-100_npop-1000_nfounders-20_seed-1/", 
+  "ssC_\\d{3}_\\d{1}.vcf", "C")
 
 
 pdf(file = "HS_simulation_data/plots/HS.pdf")

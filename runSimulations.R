@@ -46,11 +46,11 @@ LDplot = function(x, main = NULL){
   return(list(LD = LDmap, chr = chr, meanLD = meanLD))
 }
 
-read_SimVCFs = function(pattern, folder){
+read_SimVCFs = function(pattern, folder, type){
   vcfs_files = dir(folder, pattern = pattern, full.names = T)
   vcfs = lapply(vcfs_files, read.vcf)
   vcfs = lapply(vcfs, select.snps, maf > 0.05)
-  names(vcfs) = paste(rep(paste0("HS", str_pad(c(1, seq(10, 100, 10)), 3, "0", 
+  names(vcfs) = paste(rep(paste0(type, str_pad(c(1, seq(10, 100, 10)), 3, "0", 
                                                side = "left")), each = 3),
                       1:3, sep = "_")
   all_pos = lapply(vcfs, function(x) x@snps$pos)
@@ -65,6 +65,18 @@ read_SimVCFs = function(pattern, folder){
   vcfs = lapply(vcfs, select.snps, pos %in% possible_pos) %>%
     lapply(., SNP.rm.duplicates)
   vcfs
+}
+
+makeFreqTable = function(folder, type){
+  mutations = read_delim(file.path(folder, paste0("ss", type, ".mut")), delim = " ", 
+             col_names = c("out", "gen", "tracked", "pop", "id", "mut", 
+                           "pos", "s", "d", "origin_pop", "origin_gen", 
+                           "prevalence")) %>% 
+    select(id, gen, pop, mut, pos, s, prevalence) %>%
+    mutate(gen = gen - 10100,
+           type = type,
+           pop = gsub("p2", "", pop))
+  mutations
 }
 
 call_slim = function(seed = NULL, out = NULL, 
@@ -97,17 +109,32 @@ call_slim = function(seed = NULL, out = NULL,
   
   call_control = paste0("slim -d control=T ", 
                paste("-d ", names(args), "=", args, " ", sep = "", collapse = ""),
-               "sharedSelection.slim | tee ", slim_out, "/mutation_control.txt")
+               "sharedSelection.slim")
   system(call_control)
   
   call_HS = paste0("slim -d control=F ", 
                 paste("-d ", names(args), "=", args, " ", sep = "", collapse = ""),
-                "sharedSelection.slim | tee ", slim_out, "/mutation.txt")
+                "sharedSelection.slim")
   system(call_HS)
-  write.table(as.data.frame(args), file.path(slim_out, "args.tsv"), sep = "\t", row.names = F)
+  write.table(as.data.frame(args), file.path(slim_out, "args.tsv"), 
+              sep = "\t", row.names = F)
   
   for(i in dir(slim_out, full.names = T, recursive = T))
     fs::file_move(i, out_folder)
   file_delete(slim_out)
+  
+  vcfs_HS = read_SimVCFs(out_folder, pattern = "ssHS_\\d{3}_\\d{1}.vcf", "HS")
+  vcfs_C = read_SimVCFs(out_folder, pattern = "ssC_\\d{3}_\\d{1}.vcf", "C")
+  vcfs = list(HS = vcfs_HS, C = vcfs_C)
+  
+  freq_table_C = makeFreqTable(out_folder, "C")
+  freq_table_HS = makeFreqTable(out_folder, "HS")
+  freq_table = rbind(freq_table_C, freq_table_HS)
+  
+  list(vcfs = vcfs, freq = freq_table)
 }
-call_slim(seed = 1, shared = "T", sel_var = 0.1, out = "test")
+slim_out = "./HS_simulation_data/outputs/test/sSD-0.01_shared-T_nsample-1000_npop-1000_nfounders-20_seed-1/"
+
+out = call_slim(seed = 1, shared = "T", sel_var = 0.01, out = "test")
+out$freq %>%
+  dlply(.(id))
