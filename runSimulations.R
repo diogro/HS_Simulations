@@ -45,7 +45,9 @@ LDplot = function(x, main = NULL){
                 bottom.label = "none", legend = FALSE)
   return(list(LD = LDmap, chr = chr, meanLD = meanLD))
 }
-
+folder = out_folder
+pattern = "ssC_\\d{3}_\\d{1}.vcf"
+type = "C"
 read_SimVCFs = function(pattern, folder, type){
   vcfs_files = dir(folder, pattern = pattern, full.names = T)
   vcfs = lapply(vcfs_files, read.vcf)
@@ -67,23 +69,48 @@ read_SimVCFs = function(pattern, folder, type){
   vcfs
 }
 
-makeFreqTable = function(folder, type){
+makeFreqTable = function(folder, type, n_pop){
   mutations = read_delim(file.path(folder, paste0("ss", type, ".mut")), delim = " ", 
              col_names = c("out", "gen", "tracked", "pop", "id", "mut", 
                            "pos", "s", "d", "origin_pop", "origin_gen", 
                            "prevalence")) %>% 
-    select(id, gen, pop, mut, pos, s, prevalence) %>%
     mutate(gen = gen - 10100,
            type = type,
-           pop = gsub("p2", "", pop))
+           pop = gsub("p2", "", pop),
+           freq = prevalence/n_pop) %>%
+    select(id, type, gen, pop, mut, pos, s, freq) 
+
   mutations
+}
+makeFreqPCA = function(freq){
+  snp_list = freq %>%
+    select(id, type, gen, pos, freq, pop) %>%
+    dlply(.(id)) 
+  mask <- sapply(snp_list, nrow)
+  mask = mask == max(mask)
+  c_snps = snp_list[mask]
+  gen_id = paste(c_snps[[1]]$type, c_snps[[1]]$gen, c_snps[[1]]$pop, sep = "_")
+  gen_df = data.frame(gen_id, type = c_snps[[1]]$type, gen = c_snps[[1]]$gen, rep = c_snps[[1]]$pop)
+  freq_array = t(laply(c_snps, function(x) x$freq))
+  eVec = prcomp(freq_array)
+  loadings = freq_array %*% eVec$rotation[,1:2]
+  freq_pca = data.frame(gen_df, loadings)
+  freq_pca$gen = factor(freq_pca$gen, levels = c(0, seq(10, 100, 10)))
+  a_freq_pca = freq_pca %>%
+    ggplot(aes(PC1, PC2, color = type, group = interaction(type, rep), shape = rep)) +
+    geom_point(size = 3) +
+    geom_label_repel(aes(label = gen)) +
+    labs(x = "PC1", y = "PC2") + theme_bw() + ggtitle("Allele Frequency PCA")
+  print(a_freq_pca)
+  list(pca = freq_pca, plot = a_freq_pca)
 }
 
 call_slim = function(seed = NULL, out = NULL, 
                      n_founders = 20, n_pop = 1000, n_sample = 100, 
-                     sel_var = 0.1, shared = "T",
+                     s_gauss = 1, sel_var = 0.1, shared = "T",
                      selected_fraction = 0.2){
   sim_name = file.path(paste0("sSD-", sel_var, 
+                   "_s_gauss-", s_gauss,
                    "_shared-", shared,
                    "_nsample-", n_sample,
                    "_npop-", n_pop,
@@ -96,9 +123,9 @@ call_slim = function(seed = NULL, out = NULL,
   out_folder = file.path("~/projects/HS_simulations/HS_simulation_data/outputs/", out)
   dir.create(out_folder, showWarnings = FALSE, recursive = TRUE)
   
-  args = list(seed, n_founders, n_pop, n_sample, sel_var, shared,
+  args = list(seed, n_founders, n_pop, n_sample, s_gauss, sel_var, shared,
               selected_fraction)
-  names(args) = c("seed", "n_founders", "n_pop", "n_sample", 
+  names(args) = c("seed", "n_founders", "n_pop", "n_sample", "s_gauss",
                   "sel_var", "shared", "selected_fraction")
   mask = sapply(args, is.null)
   args = args[!mask]
@@ -122,19 +149,56 @@ call_slim = function(seed = NULL, out = NULL,
   for(i in dir(slim_out, full.names = T, recursive = T))
     fs::file_move(i, out_folder)
   file_delete(slim_out)
-  
-  vcfs_HS = read_SimVCFs(out_folder, pattern = "ssHS_\\d{3}_\\d{1}.vcf", "HS")
-  vcfs_C = read_SimVCFs(out_folder, pattern = "ssC_\\d{3}_\\d{1}.vcf", "C")
+  return(out_folder)
+}
+
+out_folder = gaussian_out[[i]]
+readSimulation = function(out_folder){
+  vcfs_HS = read_SimVCFs(pattern = "ssHS_\\d{3}_\\d{1}.vcf", folder = out_folder , type = "HS")
+  vcfs_C = read_SimVCFs(pattern = "ssC_\\d{3}_\\d{1}.vcf", folder = out_folder, "C")
   vcfs = list(HS = vcfs_HS, C = vcfs_C)
   
-  freq_table_C = makeFreqTable(out_folder, "C")
-  freq_table_HS = makeFreqTable(out_folder, "HS")
+  n_pop = as.numeric(strsplit(grep("npop", strsplit(out_folder, "_")[[1]], value = T), "-")[[1]][2])
+  freq_table_C = makeFreqTable(out_folder, "C", n_pop)
+  freq_table_HS = makeFreqTable(out_folder, "HS", n_pop)
   freq_table = rbind(freq_table_C, freq_table_HS)
-  
-  list(vcfs = vcfs, freq = freq_table)
+  pca = makeFreqPCA(freq_table)
+  list(vcfs = vcfs, freq = freq_table, pca = pca$pca, plot_pca = pca$plot, folder = out_folder)
 }
-slim_out = "./HS_simulation_data/outputs/test/sSD-0.01_shared-T_nsample-1000_npop-1000_nfounders-20_seed-1/"
 
-out = call_slim(seed = 1, shared = "T", sel_var = 0.01, out = "test")
-out$freq %>%
-  dlply(.(id))
+gaussian_out = vector("list", 10)
+gaussian_sim = vector("list", 10)
+
+s_var = seq(0.01, 0.1, length.out = 10)
+for(i in 1:10){
+  #gaussian_out[[i]] = call_slim(seed = i, shared = "T", s_gauss=1, sel_var = s_var[i], out = "GaussianSelection")
+  gaussian_sim[[i]] = readSimulation(gaussian_out[[i]])
+}
+
+p1 = gaussian_sim[[8]]$plot_pca + ggtitle("Allele Frequency PCA - Strong Selection - Var_s = 0.08")
+save_plot("gaussian_effects-Var_s-0.08.png", p1, base_height = 7)
+p2 = gaussian_sim[[1]]$plot_pca + ggtitle("Allele Frequency PCA - Weak Selection - Var_s = 0.01")
+save_plot("gaussian_effects-Var_s-0.01.png", p2, base_height = 7)
+
+beta_out = vector("list", 10)
+beta_sim = vector("list", 10)
+
+s_a = seq(50, 150, length.out = 10)
+for(i in 1:10){
+  beta_out[[i]] = call_slim(seed = i, shared = "T", s_gauss=0, sel_var = s_a[i], out = "BetaSelection")
+  beta_sim[[i]] = readSimulation(beta_out[[i]])
+}
+p1 = beta_sim[[1]]$plot_pca + ggtitle("Allele Frequency PCA - Strong Selection - Beta(50, 1)")
+save_plot("beta_effects-Beta_50.png", p1, base_height = 7)
+p2 = beta_sim[[10]]$plot_pca + ggtitle("Allele Frequency PCA - Weak Selection - Beta(150, 1)")
+save_plot("beta_effects-Beta_150.png", p2, base_height = 7)
+
+
+#out_folder = "./HS_simulation_data/outputs/test/sSD-0.01_shared-T_nsample-100_npop-1000_nfounders-20_seed-1/"
+sim_out = readSimulation(beta_out[[10]])
+sim_out = readSimulation(gaussian_out[[10]])
+
+snp_list = sim_out$freq %>%
+  select(id, type, gen, pos, freq, pop) %>%
+  dlply(.(id)) 
+

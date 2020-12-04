@@ -12,8 +12,16 @@ initialize() {
 		defineConstant("n_pop", 1000);
 	if (!exists("n_sample"))
 		defineConstant("n_sample", 100);
-	if (!exists("sel_var"))
-		defineConstant("sel_var", 0.01);
+	if (!exists("s_gauss"))
+		defineConstant("s_gauss", 1);
+	if (!exists("sel_var")){
+		if(s_gauss==1)
+			defineConstant("sel_var", 0.01);
+		else
+			defineConstant("sel_var", 40);
+	}
+	if (!exists("s_gauss"))
+		defineConstant("sel_var", 1);
 	if (!exists("control"))
 		defineConstant("control", F);
 	if (!exists("shared_selection"))
@@ -63,8 +71,10 @@ initialize() {
 	mut1 = sim.mutationsOfType(m1);
 	n_mut1 = length(mut1);
 	n_s1 = asInteger(n_mut1 * selected_fraction);
-	//s_1 = rbeta(n_s1, 1, 40);
-	s_1 = rnorm(n_s1, 0, sel_var);
+	if(s_gauss==1)
+		s_1 = rnorm(n_s1, 0, sel_var);
+	else
+		s_1 = rbeta(n_s1, 1, sel_var);
 	if(shared_selection){
 		for(i in 0:(n_s1-1)){
 			mut1[i].setSelectionCoeff(s_1[i]);
@@ -73,8 +83,11 @@ initialize() {
 	mut2 = sim.mutationsOfType(m2);
 	n_mut2 = length(mut2);
 	n_s2 = asInteger(n_mut2 * selected_fraction);
-	//s_2 = rbeta(n_s2, 1, 40);
-	s_2 = rnorm(n_s2, 0, sel_var);
+	if(s_gauss==1)
+		s_2 = rnorm(n_s2, 0, sel_var);
+	else
+		s_2 = rbeta(n_s2, 1, sel_var);
+	
 	if(!control){
 		for(i in 0:(n_s2-1)){
 			mut2[i].setSelectionCoeff(s_2[i]);
