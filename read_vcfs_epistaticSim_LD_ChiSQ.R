@@ -10,10 +10,11 @@ if(!require(evolqg)){install.packages("evolqg"); library(evolqg)}
 if(!require(yamdar)){remotes::install_github("diogro/yamda-r", subdir = "package")
 ; library(yamdar)}
 if(!require(vcfR)){install.packages("vcfR"); library(vcfR)}
+if(!require(genetics)){install.packages("genetics"); library(genetics)}
 
-bed.mat = gen1
-lim = c(1, 100)
-lim2 = NULL
+# bed.mat = gen1
+# lim = c(1, 100)
+# lim2 = NULL
 LD.chisq = function(bed.mat, lim, lim2 = NULL, stat = FALSE,...){
   if(is.null(lim2)) lim2 = lim
   x = as.matrix(bed.mat)
@@ -33,7 +34,7 @@ LD.chisq = function(bed.mat, lim, lim2 = NULL, stat = FALSE,...){
   LD
 }
 
-vcf = gen1
+# vcf = vcfR::read.vcfR(file.path(sim_folder_epi, "Gen_001_Sample.vcf"))
 vcfToGenotype = function(vcf){
   x = gsub("\\|", "/", vcf@gt[,-1])
   p = nrow(x)
@@ -42,13 +43,42 @@ vcfToGenotype = function(vcf){
   colnames(df_snps) = vcf@fix[,2]
   df_snps = df_snps[,-1]
 }
-LD_object = LD(df_snps)
+vcfToNumeric = function(vcf){
+  x = gsub("1\\|1", "2", vcf@gt[,-1]) 
+  x = gsub("0\\|0", "0", x) 
+  x = gsub("1\\|0", "1", x) 
+  x = gsub("0\\|1", "1", x) 
+  p = nrow(x)
+  df_list = lapply(1:p, function(i) x[i,])
+  df_snps = as.data.frame(df_list)
+  colnames(df_snps) = vcf@fix[,2]
+  df_snps = df_snps[,-1]
+}
 
+# pairLD = function(geno, snp1, snp2){
+#   LD_object = LD(geno[,c(snp1, snp2)])
+#   LD_object$`X^2`[1,2]
+# }
+# geno = gen1
+# snp1 = as.character(epistatic_pairs$pos1[1])
+# snp2 = as.character(epistatic_pairs$pos2[1])
 
+pairLD = function(geno, snp1, snp2){
+  tab <- table(geno[, c(snp1, snp2)])
+  if(length(tab) < 2 )
+    return(NA)
+  LD_object = chisq.test(tab)
+  LD_object$statistic
+}
+mean_pairLD_list = function(geno, snp_list1, snp_list2){
+  mean(unlist(Map(function(x, y) pairLD(geno, x, y),
+                  snp_list1, 
+                  snp_list2)), na.rm = TRUE)
+}
 lt = function(x) x[lower.tri(x)]
 #x = vcfs_C[[1]]
-sim = 1
-experimental = 1
+# sim = 1
+# experimental = 1
 measure_LD = function(sim, experimental){
   sim_folder_epi = file.path(paste0("data/epistatic_tests/NQTL1000f_E200/SimRep", sim, "/ExpRepPlus", experimental))
   sim_folder_add = file.path(paste0("data/epistatic_tests/NQTL1000f/SimRep", sim, "/ExpRepPlus", experimental))
@@ -61,59 +91,47 @@ measure_LD = function(sim, experimental){
   epistatic_pairs = read_delim(file.path(sim_folder_epi, "_EpiQTL_list.txt"), delim = " ")
   non_epistatic_pairs = read_delim(file.path(sim_folder_epi, "_EpiQTL_list.txt"), delim = " ")
   
-  gen1 = read.vcf(file.path(sim_folder_epi, "Gen_001_Sample.vcf"))
-  gen1 = vcfR::read.vcfR(file.path(sim_folder_epi, "Gen_001_Sample.vcf"))
+  gen1 = vcfToNumeric(vcfR::read.vcfR(file.path(sim_folder_epi, "Gen_001_Sample.vcf")))
+  gen100_epi = vcfToNumeric(vcfR::read.vcfR(file.path(sim_folder_epi, "Gen_100_Sample.vcf")))
+  gen100_add = vcfToNumeric(vcfR::read.vcfR(file.path(sim_folder_add, "Gen_100_Sample.vcf")))
   
-  gen100_epi = read.vcf(file.path(sim_folder_epi, "Gen_100_Sample.vcf"))
-  gen100_add = read.vcf(file.path(sim_folder_add, "Gen_100_Sample.vcf"))
+  mask = intersect(intersect(colnames(gen1),colnames(gen100_epi)),colnames(gen100_add))
   
+  gen1 = gen1[mask]
+  gen100_epi = gen100_epi[mask]
+  gen100_add = gen100_add[mask]
   
-  LD1 = LD.chisq(gen1, c(1, nrow(gen1@snps)))
-  LD100_epi = LD.chisq(gen100_epi, c(1, nrow(gen100_epi@snps)))
-  LD100_add = LD.chisq(gen100_add, c(1, nrow(gen100_add@snps)))
+  epistatic_pairs = epistatic_pairs[epistatic_pairs$pos1 %in% colnames(gen1),]
+  epistatic_pairs = epistatic_pairs[epistatic_pairs$pos2 %in% colnames(gen1),]
+  mean_LD1 = mean_pairLD_list(gen1, 
+                              as.character(epistatic_pairs$pos1), 
+                              as.character(epistatic_pairs$pos2))
   
-  dimnames(LD1) = list(gen1@snps$pos, gen1@snps$pos)
-  dimnames(LD100_epi) = list(gen100_epi@snps$pos, gen100_epi@snps$pos)
-  #superheat(LD100_epi)
+  epistatic_pairs = epistatic_pairs[epistatic_pairs$pos1 %in% colnames(gen100_epi),]
+  epistatic_pairs = epistatic_pairs[epistatic_pairs$pos2 %in% colnames(gen100_epi),]
+  mean_LD100_epi = mean_pairLD_list(gen100_epi, 
+                                    as.character(epistatic_pairs$pos1), 
+                                    as.character(epistatic_pairs$pos2))
   
-  dimnames(LD100_add) = list(gen100_add@snps$pos, gen100_add@snps$pos)
-  #superheat(LD100_add)
-  
-  LD1 = LD1[which(gen1@snps$maf > 0), which(gen1@snps$maf > 0)]
-  LD100_epi = LD100_epi[which(gen100_epi@snps$maf > 0), which(gen100_epi@snps$maf > 0)]
-  LD100_add = LD100_add[which(gen100_add@snps$maf > 0), which(gen100_add@snps$maf > 0)]
-  
-  mask = intersect(intersect(rownames(LD1),rownames(LD100_add)),rownames(LD100_epi))
-  
-  LD1 = LD1[mask, mask]
-  LD100_epi = LD100_epi[mask, mask]
-  LD100_add = LD100_add[mask, mask]
-  
-  epistatic_pairs = epistatic_pairs[epistatic_pairs$pos1 %in% rownames(LD100_epi),]
-  epistatic_pairs = epistatic_pairs[epistatic_pairs$pos2 %in% rownames(LD100_epi),]
-  
-  mean_LD1   = mean(diag(  LD1[as.character(epistatic_pairs$pos1), as.character(epistatic_pairs$pos2)]), na.rm = TRUE)
-  
-  epistatic_pairs = epistatic_pairs[epistatic_pairs$pos1 %in% rownames(LD100_epi),]
-  epistatic_pairs = epistatic_pairs[epistatic_pairs$pos2 %in% rownames(LD100_epi),]
-  mean_LD100_epi = mean(diag(LD100_epi[as.character(epistatic_pairs$pos1), as.character(epistatic_pairs$pos2)]), na.rm = TRUE)
-  
-  non_epistatic_pairs = non_epistatic_pairs[non_epistatic_pairs$pos1 %in% rownames(LD100_add),]
-  non_epistatic_pairs = non_epistatic_pairs[non_epistatic_pairs$pos2 %in% rownames(LD100_add),]
-  mean_LD100_add = mean(diag(LD100_add[as.character(non_epistatic_pairs$pos1), 
-                                       as.character(non_epistatic_pairs$pos2)]), na.rm = TRUE)
+  non_epistatic_pairs = non_epistatic_pairs[non_epistatic_pairs$pos1 %in% colnames(gen100_add),]
+  non_epistatic_pairs = non_epistatic_pairs[non_epistatic_pairs$pos2 %in% colnames(gen100_add),]
+  mean_LD100_add = mean_pairLD_list(gen100_add, 
+                                    as.character(epistatic_pairs$pos1), 
+                                    as.character(epistatic_pairs$pos2))
   
   n_rep = 10000
   replicate_1 = numeric(n_rep)
   replicate_100_epi = numeric(n_rep)
   replicate_100_add = numeric(n_rep)
-  cutoff = table(as.numeric(rownames(LD1)) > 30000000/2)[1]
+  cutoff = table(as.numeric(colnames(gen1)) > 30000000/2)[1]
+  n_snps = ncol(gen1)
   for(i in 1:n_rep){
+    cat(i)
     snp1 = sample(1:cutoff, nrow(epistatic_pairs))
-    snp2 = sample(cutoff:nrow(LD1), nrow(epistatic_pairs))
-    replicate_1[i]   = mean(diag(LD1[snp1, snp2]))
-    replicate_100_epi[i] = mean(diag(LD100_epi[snp1, snp2]))
-    replicate_100_add[i] = mean(diag(LD100_add[snp1, snp2]))
+    snp2 = sample(cutoff:n_snps, nrow(epistatic_pairs))
+    replicate_1[i]       = mean_pairLD_list(gen1,       snp1, snp2)
+    replicate_100_epi[i] = mean_pairLD_list(gen100_epi, snp1, snp2)
+    replicate_100_add[i] = mean_pairLD_list(gen100_add, snp1, snp2)
     if(is.na(replicate_1[i]) | is.na(replicate_100_epi[i]) | is.na(replicate_100_add[i])){
       stop("Deu merda.")
       break
@@ -147,7 +165,7 @@ plotHist = function (x){
 }
 
 x = Map(measure_LD, 1:50, sample(1:3, 50, T))
-plotHist(x[[3]])
+# plotHist(x[[2]])
 
 LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_epi, x$mean_LD100_add,
                                           x$replicate_1,  
@@ -159,13 +177,13 @@ LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_
                                 )) %>%
   mutate(key = factor(key, levels = c("start", "add", "epi"))) %>%
   ggplot(aes(key, value, group = interaction(group, key), fill = group)) + 
-  geom_boxplot() + labs(y = "LD (r^2)", x = "Generation and Scenario") + 
+  geom_boxplot() + labs(y = "LD (X^2 Statistic)", x = "Generation and Scenario") + 
   scale_fill_discrete(labels = c("Average between random SNP pairs", "Average between QTL pairs"), name = "") +
   scale_x_discrete(labels = c("Starting Generation", "Generation 100 \n Additive Scenario", "Generation 100 \n Epistatic Scenario")) +
   theme_cowplot() + theme(legend.position = "bottom")
-save_plot(file= "HS_simulation_data/plots/LD_boxplot_epistatic_Additive.png", LD_boxplot, base_height = 8, base_asp = 1.2)
+save_plot(file= "HS_simulation_data/plots/LD_boxplot_epistatic_Additive_ChiSqStat.png", LD_boxplot, base_height = 8, base_asp = 1.2)
 
-png("HS_simulation_data/plots/LD_truncation_selection_epistasis.png", width=15, height=15, units="in", res=300, pointsize=20)
-
-dev.off()
+# png("HS_simulation_data/plots/LD_truncation_selection_epistasis.png", width=15, height=15, units="in", res=300, pointsize=20)
+# 
+# dev.off()
 
