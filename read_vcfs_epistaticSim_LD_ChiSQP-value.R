@@ -68,7 +68,7 @@ pairLD = function(geno, snp1, snp2){
   if(length(tab) < 2 )
     return(NA)
   LD_object = chisq.test(tab)
-  LD_object$statistic
+  -log10(LD_object$p.value)
 }
 mean_pairLD_list = function(geno, snp_list1, snp_list2){
   mean(unlist(Map(function(x, y) pairLD(geno, x, y),
@@ -166,7 +166,7 @@ plotHist = function (x){
 }
 
 x = Map(measure_LD, 1:50, sample(1:3, 50, T))
-saveRDS(x, file = "data/LD_simulation_ChiSqStat.rds")
+saveRDS(x, file = "data/LD_simulation_ChiSqPvalue.rds")
 # plotHist(x[[2]])
 
 LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_epi, x$mean_LD100_add,
@@ -179,11 +179,11 @@ LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_
                                 )) %>%
   mutate(key = factor(key, levels = c("start", "add", "epi"))) %>%
   ggplot(aes(key, value, group = interaction(group, key), fill = group)) + 
-  geom_boxplot() + labs(y = "LD (X^2 Statistic)", x = "Generation and Scenario") + 
+  geom_boxplot() + labs(y = "LD (X^2 -log10(p-value))", x = "Generation and Scenario") + 
   scale_fill_discrete(labels = c("Average between random SNP pairs", "Average between QTL pairs"), name = "") +
   scale_x_discrete(labels = c("Starting Generation", "Generation 100 \n Additive Scenario", "Generation 100 \n Epistatic Scenario")) +
   theme_cowplot() + theme(legend.position = "bottom")
-save_plot(file= "HS_simulation_data/plots/LD_boxplot_epistatic_Additive_ChiSqStat.png", LD_boxplot, base_height = 8, base_asp = 1.2)
+save_plot(file= "HS_simulation_data/plots/LD_boxplot_epistatic_Additive_ChiSqP-value.png", LD_boxplot, base_height = 8, base_asp = 1.2)
 
 # png("HS_simulation_data/plots/LD_truncation_selection_epistasis.png", width=15, height=15, units="in", res=300, pointsize=20)
 # 
