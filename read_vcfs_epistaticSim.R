@@ -11,9 +11,6 @@ if(!require(yamdar)){remotes::install_github("diogro/yamda-r", subdir = "package
 ; library(yamdar)}
 if(!require(vcfR)){install.packages("vcfR"); library(vcfR)}
 
-bed.mat = gen1
-lim = c(1, 100)
-lim2 = NULL
 LD.chisq = function(bed.mat, lim, lim2 = NULL, stat = FALSE,...){
   if(is.null(lim2)) lim2 = lim
   x = as.matrix(bed.mat)
@@ -33,7 +30,6 @@ LD.chisq = function(bed.mat, lim, lim2 = NULL, stat = FALSE,...){
   LD
 }
 
-vcf = gen1
 vcfToGenotype = function(vcf){
   x = gsub("\\|", "/", vcf@gt[,-1])
   p = nrow(x)
@@ -46,9 +42,7 @@ LD_object = LD(df_snps)
 
 
 lt = function(x) x[lower.tri(x)]
-#x = vcfs_C[[1]]
-sim = 1
-experimental = 1
+
 measure_LD = function(sim, experimental){
   sim_folder_epi = file.path(paste0("data/epistatic_tests/NQTL1000f_E200/SimRep", sim, "/ExpRepPlus", experimental))
   sim_folder_add = file.path(paste0("data/epistatic_tests/NQTL1000f/SimRep", sim, "/ExpRepPlus", experimental))
@@ -61,16 +55,16 @@ measure_LD = function(sim, experimental){
   epistatic_pairs = read_delim(file.path(sim_folder_epi, "_EpiQTL_list.txt"), delim = " ")
   non_epistatic_pairs = read_delim(file.path(sim_folder_epi, "_EpiQTL_list.txt"), delim = " ")
   
-  gen1 = read.vcf(file.path(sim_folder_epi, "Gen_001_Sample.vcf"))
-  gen1 = vcfR::read.vcfR(file.path(sim_folder_epi, "Gen_001_Sample.vcf"))
+  gen1 = gaston::read.vcf(file.path(sim_folder_epi, "Gen_001_Sample.vcf"))
+  gen1 = gaston::read.vcf(file.path(sim_folder_epi, "Gen_001_Sample.vcf"))
   
-  gen100_epi = read.vcf(file.path(sim_folder_epi, "Gen_100_Sample.vcf"))
-  gen100_add = read.vcf(file.path(sim_folder_add, "Gen_100_Sample.vcf"))
+  gen100_epi = gaston::read.vcf(file.path(sim_folder_epi, "Gen_100_Sample.vcf"))
+  gen100_add = gaston::read.vcf(file.path(sim_folder_add, "Gen_100_Sample.vcf"))
   
   
-  LD1 = LD.chisq(gen1, c(1, nrow(gen1@snps)))
-  LD100_epi = LD.chisq(gen100_epi, c(1, nrow(gen100_epi@snps)))
-  LD100_add = LD.chisq(gen100_add, c(1, nrow(gen100_add@snps)))
+  LD1 = gaston::LD(gen1, c(1, nrow(gen1@snps)))
+  LD100_epi = gaston::LD(gen100_epi, c(1, nrow(gen100_epi@snps)))
+  LD100_add = gaston::LD(gen100_add, c(1, nrow(gen100_add@snps)))
   
   dimnames(LD1) = list(gen1@snps$pos, gen1@snps$pos)
   dimnames(LD100_epi) = list(gen100_epi@snps$pos, gen100_epi@snps$pos)
@@ -163,7 +157,7 @@ LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_
   scale_fill_discrete(labels = c("Average between random SNP pairs", "Average between QTL pairs"), name = "") +
   scale_x_discrete(labels = c("Starting Generation", "Generation 100 \n Additive Scenario", "Generation 100 \n Epistatic Scenario")) +
   theme_cowplot() + theme(legend.position = "bottom")
-save_plot(file= "HS_simulation_data/plots/LD_boxplot_epistatic_Additive.png", LD_boxplot, base_height = 8, base_asp = 1.2)
+save_plot(file= "HS_simulation_data/plots/LD_boxplot_epistatic_Additive_r2.svg", LD_boxplot, base_height = 8, base_asp = 1.2)
 
 png("HS_simulation_data/plots/LD_truncation_selection_epistasis.png", width=15, height=15, units="in", res=300, pointsize=20)
 
