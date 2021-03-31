@@ -84,15 +84,15 @@ x = Map(measure_CorrPairs, 1:50, sample(1:3, 50, T))
 mean_corrs = data.frame(do.call(rbind, x)) %>%
   reshape2::melt()
 
-FreqCorr_boxplot = ggplot(mean_corrs, aes(variable, value, group = variable, fill = variable)) + 
+FreqCorr_boxplot = ggplot(mean_corrs, aes(variable, value, group = variable)) + 
   geom_boxplot() + labs(y = "Allele frequency correlation", x = "Scenario") + 
   scale_fill_discrete(labels = c("Average correlation between\nadditive QTLs", 
                                  "Average correlation between\nepistatic QTLs"), name = "") +
   scale_x_discrete(labels = c("Additive Scenario", "Epistatic Scenario")) +
   theme_cowplot() + theme(legend.position = "bottom")
-save_plot(file= "HS_simulation_data/plots/FreqCorrelation_boxplot_epistatic_Additive.png", FreqCorr_boxplot, base_height = 8, base_asp = 1.2)
+save_plot(file= "HS_simulation_data/plots/FreqCorrelation_boxplot_epistatic_Additive.svg", FreqCorr_boxplot, base_height = 8, base_asp = 1.2)
 
-png("HS_simulation_data/plots/LD_truncation_selection_epistasis.png", width=15, height=15, units="in", res=300, pointsize=20)
+png("HS_simulation_data/plots/LD_truncation_selection_epistasis.svg", width=15, height=15, units="in", res=300, pointsize=20)
 
 dev.off()
 
