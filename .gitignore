@@ -43,3 +43,5 @@ outputs/
 outputs/*
 HS_simulations.Rproj
 *.mp4
+
+data

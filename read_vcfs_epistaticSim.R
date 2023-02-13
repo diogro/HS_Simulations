@@ -3,13 +3,14 @@ if(!require(plyr)){install.packages("plyr"); library(plyr)}
 if(!require(tidyverse)){install.packages("tidyverse"); library(tidyverse)}
 if(!require(gaston)){install.packages("gaston"); library(gaston)}
 if(!require(superheat)){install.packages("superheat"); library(superheat)}
-if(!require(animation)){install.packages("animation"); library(animation)}
+# if(!require(animation)){install.packages("animation"); library(animation)}
 if(!require(ggrepel)){install.packages("ggrepel"); library(ggrepel)}
 if(!require(cowplot)){install.packages("cowplot"); library(cowplot)}
 if(!require(evolqg)){install.packages("evolqg"); library(evolqg)}
 if(!require(yamdar)){remotes::install_github("diogro/yamda-r", subdir = "package")
 ; library(yamdar)}
 if(!require(vcfR)){install.packages("vcfR"); library(vcfR)}
+if(!require(latex2exp)){install.packages("latex2exp"); library(latex2exp)}
 
 LD.chisq = function(bed.mat, lim, lim2 = NULL, stat = FALSE,...){
   if(is.null(lim2)) lim2 = lim
@@ -141,7 +142,9 @@ plotHist = function (x){
 }
 
 x = Map(measure_LD, 1:50, sample(1:3, 50, T))
+png("test.png")
 plotHist(x[[3]])
+dev.off()
 
 LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_epi, x$mean_LD100_add,
                                           x$replicate_1,  
@@ -153,11 +156,13 @@ LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_
                                 )) %>%
   mutate(key = factor(key, levels = c("start", "add", "epi"))) %>%
   ggplot(aes(key, value, group = interaction(group, key), fill = group)) + 
-  geom_boxplot() + labs(y = "LD (r^2)", x = "Generation and Scenario") + 
+  geom_boxplot() + labs(x = "Generation and Scenario") + 
+  ylab(TeX("Gametic Disequilibrium ($R^2$)")) +
   scale_fill_discrete(labels = c("Average between random SNP pairs", "Average between QTL pairs"), name = "") +
   scale_x_discrete(labels = c("Starting Generation", "Generation 100 \n Additive Scenario", "Generation 100 \n Epistatic Scenario")) +
   theme_cowplot() + theme(legend.position = "bottom")
-save_plot(file= "HS_simulation_data/plots/LD_boxplot_epistatic_Additive_r2.svg", LD_boxplot, base_height = 8, base_asp = 1.2)
+saveRDS(LD_boxplot, "figures/LD_boxplots.rds")
+save_plot(file= "figures/LD_boxplot_epistatic_Additive_r2.png", LD_boxplot, base_height = 4, base_asp = 1.8)
 
 png("HS_simulation_data/plots/LD_truncation_selection_epistasis.png", width=15, height=15, units="in", res=300, pointsize=20)
 

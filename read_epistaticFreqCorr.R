@@ -1,8 +1,8 @@
 #if(!require(pegas)){install.packages("pegas"); library(pegas)}
-if(!require(plyr)){install.packages("plyr"); library(plyr)}
+if(!require(plyr){install.packages("plyr"); library(plyr)}
 if(!require(tidyverse)){install.packages("tidyverse"); library(tidyverse)}
 if(!require(superheat)){install.packages("superheat"); library(superheat)}
-if(!require(animation)){install.packages("animation"); library(animation)}
+#if(!require(animation)){install.packages("animation"); library(animation)}
 if(!require(ggrepel)){install.packages("ggrepel"); library(ggrepel)}
 if(!require(cowplot)){install.packages("cowplot"); library(cowplot)}
 if(!require(evolqg)){install.packages("evolqg"); library(evolqg)}
@@ -12,7 +12,7 @@ if(!require(yamdar)){remotes::install_github("diogro/yamda-r", subdir = "package
 file = QTL_files_add[[1]]
 read_mutation = function(file){
   read_delim(file, 
-           col_names = c("out", "gen", "tracked", 
+           col_names = c("nothing", "out", "gen", "tracked", 
                          "pop", "id", "type", 
                          "pos", "ad", "dm", "pop_org",
                          "gen_org", "prev"),
@@ -38,7 +38,7 @@ measure_CorrPairs = function(sim, experimental){
   QTL_files_epi = dir(sim_folder_epi, full.names = T, pattern = "mutations.txt")
   
   epistatic_pairs = read_delim(file.path(sim_folder_epi, "_EpiQTL_list.txt"), delim = " ")
-  non_epistatic_pairs = read_delim(file.path(sim_folder_epi, "_EpiQTL_list.txt"), delim = " ")
+  non_epistatic_pairs = read_delim(file.path(QTL_files_add, "_EpiQTL_list.txt"), delim = " ")
   
   mutation_table_add = ldply(QTL_files_add, read_mutation)
   mutation_table_epi = ldply(QTL_files_epi, read_mutation)
@@ -85,12 +85,15 @@ mean_corrs = data.frame(do.call(rbind, x)) %>%
   reshape2::melt()
 
 FreqCorr_boxplot = ggplot(mean_corrs, aes(variable, value, group = variable)) + 
-  geom_boxplot() + labs(y = "Allele frequency correlation", x = "Scenario") + 
-  scale_fill_discrete(labels = c("Average correlation between\nadditive QTLs", 
-                                 "Average correlation between\nepistatic QTLs"), name = "") +
+  geom_boxplot() + labs(y = "Allele frequency correlation\n between unlinked QTL pairs", x = "Scenario") + 
+  scale_fill_manual(values=c("darkorange2", "purple"),
+                    labels = c("Average correlation between\nadditive QTLs", 
+                               "Average correlation between\nepistatic QTLs"), name = "") +
   scale_x_discrete(labels = c("Additive Scenario", "Epistatic Scenario")) +
-  theme_cowplot() + theme(legend.position = "bottom")
-save_plot(file= "HS_simulation_data/plots/FreqCorrelation_boxplot_epistatic_Additive.svg", FreqCorr_boxplot, base_height = 8, base_asp = 1.2)
+  theme_cowplot() + theme(legend.position = "none")
+save_plot(file= "figures/FreqCorrelation_boxplot_epistatic_Additive.png", 
+          FreqCorr_boxplot, base_height = 3, base_asp = 1.7)
+
 
 png("HS_simulation_data/plots/LD_truncation_selection_epistasis.svg", width=15, height=15, units="in", res=300, pointsize=20)
 
