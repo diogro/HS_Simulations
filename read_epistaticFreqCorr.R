@@ -1,10 +1,12 @@
 #if(!require(pegas)){install.packages("pegas"); library(pegas)}
-if(!require(plyr){install.packages("plyr"); library(plyr)}
+if(!require(plyr)){install.packages("plyr"); library(plyr)}
 if(!require(tidyverse)){install.packages("tidyverse"); library(tidyverse)}
 if(!require(superheat)){install.packages("superheat"); library(superheat)}
 #if(!require(animation)){install.packages("animation"); library(animation)}
 if(!require(ggrepel)){install.packages("ggrepel"); library(ggrepel)}
 if(!require(cowplot)){install.packages("cowplot"); library(cowplot)}
+if(!require(ggthemes)){install.packages("ggthemes"); library(ggthemes)}
+
 if(!require(evolqg)){install.packages("evolqg"); library(evolqg)}
 if(!require(yamdar)){remotes::install_github("diogro/yamda-r", subdir = "package")
 ; library(yamdar)}
@@ -38,7 +40,7 @@ measure_CorrPairs = function(sim, experimental){
   QTL_files_epi = dir(sim_folder_epi, full.names = T, pattern = "mutations.txt")
   
   epistatic_pairs = read_delim(file.path(sim_folder_epi, "_EpiQTL_list.txt"), delim = " ")
-  non_epistatic_pairs = read_delim(file.path(QTL_files_add, "_EpiQTL_list.txt"), delim = " ")
+  non_epistatic_pairs = read_delim(file.path(sim_folder_add, "_EpiQTL_list.txt"), delim = " ")
   
   mutation_table_add = ldply(QTL_files_add, read_mutation)
   mutation_table_epi = ldply(QTL_files_epi, read_mutation)
@@ -84,18 +86,40 @@ x = Map(measure_CorrPairs, 1:50, sample(1:3, 50, T))
 mean_corrs = data.frame(do.call(rbind, x)) %>%
   reshape2::melt()
 
+scale = 1.4
+axis.font.size = 9*scale
 FreqCorr_boxplot = ggplot(mean_corrs, aes(variable, value, group = variable)) + 
-  geom_boxplot() + labs(y = "Allele frequency correlation\n between unlinked QTL pairs", x = "Scenario") + 
+   geom_boxplot(outlier.size = 0.5, size = 0.5 ) + 
+   labs(y = "Allele frequency correlation\n between unlinked QTL pairs", x = "Scenario") + 
   scale_fill_manual(values=c("darkorange2", "purple"),
                     labels = c("Average correlation between\nadditive QTLs", 
                                "Average correlation between\nepistatic QTLs"), name = "") +
-  scale_x_discrete(labels = c("Additive Scenario", "Epistatic Scenario")) +
-  theme_cowplot() + theme(legend.position = "none")
+  scale_x_discrete(labels = c("Additive", "Epistatic")) +
+  theme_classic() + theme(legend.position = "none") +
+     theme(axis.title.x = element_text(size = axis.font.size*1.2), 
+           axis.title.y = element_text(size = axis.font.size*1.),
+           axis.text = element_text(size = axis.font.size))
 save_plot(file= "figures/FreqCorrelation_boxplot_epistatic_Additive.png", 
-          FreqCorr_boxplot, base_height = 3, base_asp = 1.7)
+          FreqCorr_boxplot,  base_width = scale*5  , base_height = scale*2.7)
 
+axis.font.size = 13
+FreqCorr_boxplot_poster = FreqCorr_boxplot + theme(legend.position = "none") +
+     theme(axis.title.x = element_text(size = axis.font.size*1.2), 
+           axis.title.y = element_text(size = axis.font.size*1.),
+           axis.text = element_text(size = axis.font.size))
 
-png("HS_simulation_data/plots/LD_truncation_selection_epistasis.svg", width=15, height=15, units="in", res=300, pointsize=20)
+library(ggproto)
 
-dev.off()
+LD_boxplot = rio::import("figures/LD_boxplots.rds")
+LD_boxplot_poster = LD_boxplot +
+     theme(axis.title.x = element_text(size = axis.font.size), 
+           axis.title.y = element_text(size = axis.font.size),
+           axis.text = element_text(size = axis.font.size*0.8),
+           legend.text = element_text(size = axis.font.size*0.8))
 
+library(patchwork)
+
+poster_panels = FreqCorr_boxplot_poster + LD_boxplot_poster + 
+  plot_layout(widths = c(2, 3))
+save_plot(file= "figures/FreqCorrelation_boxplot_epistatic_Additive_poster.png", 
+          poster_panels,  base_width =  28/2.54 , base_height = 10/2.54)

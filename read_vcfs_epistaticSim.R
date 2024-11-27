@@ -141,11 +141,11 @@ plotHist = function (x){
   abline(v = x$mean_LD100_add, pch = 19, col = "red", lwd = 2)
 }
 
-x = Map(measure_LD, 1:50, sample(1:3, 50, T))
-png("test.png")
-plotHist(x[[3]])
-dev.off()
+# x = Map(measure_LD, 1:50, sample(1:3, 50, T))
+# rio::export(x, "data/LD_simulation_r2.rds")
+x = rio::import("data/LD_simulation_r2.rds")
 
+axis.font.size = 9*1.7
 LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_epi, x$mean_LD100_add,
                                           x$replicate_1,  
                                           x$replicate_100_epi,
@@ -156,13 +156,18 @@ LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_
                                 )) %>%
   mutate(key = factor(key, levels = c("start", "add", "epi"))) %>%
   ggplot(aes(key, value, group = interaction(group, key), fill = group)) + 
-  geom_boxplot() + labs(x = "Generation and Scenario") + 
+  geom_boxplot(outlier.size = 0.1, size = 0.3) + labs(x = "Generation and Scenario") + 
   ylab(TeX("Gametic Disequilibrium ($R^2$)")) +
-  scale_fill_discrete(labels = c("Average between random SNP pairs", "Average between QTL pairs"), name = "") +
-  scale_x_discrete(labels = c("Starting Generation", "Generation 100 \n Additive Scenario", "Generation 100 \n Epistatic Scenario")) +
-  theme_cowplot() + theme(legend.position = "bottom")
+  scale_fill_discrete(labels = c("\nAverage between\nrandom SNP pairs\n", "\nAverage between\nQTL pairs\n"), name = "") +
+  scale_x_discrete(labels = c("Generation 1\nBoth", "Generation 100 \n Additive", "Generation 100 \n Epistatic")) +
+   theme_classic() + theme(legend.position = "right") +
+     theme(axis.title.x = element_text(size = axis.font.size*1.1), 
+           axis.title.y = element_text(size = axis.font.size*1.2),
+           axis.text = element_text(size = axis.font.size), 
+           legend.text = element_text(size = axis.font.size))
+save_plot(file= "figures/LD_boxplot_epistatic_Additive_r2.png", LD_boxplot, base_width = 1.5*6  , base_height = 1.5*3.5)
+
 saveRDS(LD_boxplot, "figures/LD_boxplots.rds")
-save_plot(file= "figures/LD_boxplot_epistatic_Additive_r2.png", LD_boxplot, base_height = 4, base_asp = 1.8)
 
 png("HS_simulation_data/plots/LD_truncation_selection_epistasis.png", width=15, height=15, units="in", res=300, pointsize=20)
 
