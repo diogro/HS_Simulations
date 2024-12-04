@@ -145,8 +145,8 @@ plotHist = function (x){
 # rio::export(x, "data/LD_simulation_r2.rds")
 x = rio::import("data/LD_simulation_r2.rds")
 
-axis.font.size = 9*1.7
-LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_epi, x$mean_LD100_add,
+axis.font.size = 9*1.8
+data = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_epi, x$mean_LD100_add,
                                           x$replicate_1,  
                                           x$replicate_100_epi,
                                           x$replicate_100_add),
@@ -154,18 +154,23 @@ LD_boxplot = ldply(x, function(x) data.frame(value = c(x$mean_LD1, x$mean_LD100_
                                 group = c(rep("Pairs", 3), 
                                           rep("Average", 3*length(x$replicate_1)))
                                 )) %>%
-  mutate(key = factor(key, levels = c("start", "add", "epi"))) %>%
+  mutate(key = factor(key, levels = c("start", "add", "epi"))) 
+
+
+data %>%  group_by(key, group) %>% summarize(m = mean(value), sd = sd(value))
+
+LD_boxplot = data %>%
   ggplot(aes(key, value, group = interaction(group, key), fill = group)) + 
   geom_boxplot(outlier.size = 0.1, size = 0.3) + labs(x = "Generation and Scenario") + 
   ylab(TeX("Gametic Disequilibrium ($R^2$)")) +
-  scale_fill_discrete(labels = c("\nAverage between\nrandom SNP pairs\n", "\nAverage between\nQTL pairs\n"), name = "") +
+  scale_fill_discrete(labels = c("Average\nbetween\nrandom\nSNP pairs\n", "\nAverage\nbetween\nQTL pairs\n"), name = "") +
   scale_x_discrete(labels = c("Generation 1\nBoth", "Generation 100 \n Additive", "Generation 100 \n Epistatic")) +
    theme_classic() + theme(legend.position = "right") +
-     theme(axis.title.x = element_text(size = axis.font.size*1.1), 
-           axis.title.y = element_text(size = axis.font.size*1.2),
+     theme(axis.title.x = element_text(size = axis.font.size*1.2), 
+           axis.title.y = element_text(size = axis.font.size*1.3),
            axis.text = element_text(size = axis.font.size), 
            legend.text = element_text(size = axis.font.size))
-save_plot(file= "figures/LD_boxplot_epistatic_Additive_r2.png", LD_boxplot, base_width = 1.5*6  , base_height = 1.5*3.5)
+save_plot(file= "figures/LD_boxplot_epistatic_Additive_r2.pdf", LD_boxplot, base_width = 1.5*6  , base_height = 1.5*3.6)
 
 saveRDS(LD_boxplot, "figures/LD_boxplots.rds")
 
